@@ -4,7 +4,7 @@
 ;; abstraction provided by the clojure-hadoop library.
 ;;
 ;; This is the example word count program used in the Hadoop MapReduce
-;; tutorials.  As you can see, it is very similar to the Java code, and
+;; tutorials. As you can see, it is very similar to the Java code, and
 ;; uses the Hadoop API directly.
 ;;
 ;; We have to call gen-job-classes and gen-main-method, then define the
@@ -14,51 +14,53 @@
 ;; README.txt), then run this command (all one line):
 ;;
 ;;   java -cp examples.jar \
-;;        clojure_hadoop.examples.wordcount1 \
+;;        clojure_hadoop.test.examples.wordcount1 \
 ;;        README.txt out1
 ;;
 ;; This will count the instances of each word in README.txt and write
 ;; the results to out1/part-00000
- 
-  
-(ns clojure-hadoop.examples.wordcount1
+(ns clojure-hadoop.test.examples.wordcount1
   (:require [clojure-hadoop.gen :as gen]
             [clojure-hadoop.imports :as imp])
   (:import (java.util StringTokenizer)
            (org.apache.hadoop.util Tool)))
 
-(imp/import-io)     ;; for Text, LongWritable
-(imp/import-fs)     ;; for Path
-(imp/import-mapred) ;; for JobConf, JobClient
+(imp/import-io)            ;; for Text, LongWritable
+(imp/import-fs)            ;; for Path
+(imp/import-mapreduce)     ;; for Job, map/reduce context objects
+(imp/import-mapreduce-lib)
 
 (gen/gen-job-classes)  ;; generates Tool, Mapper, and Reducer classes
 (gen/gen-main-method)  ;; generates Tool.main method
 
 (defn mapper-map
-  "This is our implementation of the Mapper.map method.  The key and
+  "This is our implementation of the Mapper.map method. The key and
   value arguments are sub-classes of Hadoop's Writable interface, so
   we have to convert them to strings or some other type before we can
-  use them.  Likewise, we have to call the OutputCollector.collect
+  use them. Likewise, we have to call the MapContext.write
   method with objects that are sub-classes of Writable."
-  [this key value #^OutputCollector output reporter]
+  [this key value ^MapContext context]
   (doseq [word (enumeration-seq (StringTokenizer. (str value)))]
-    (.collect output (Text. word) (LongWritable. 1))))
+    (.write context (Text. word) (LongWritable. 1))))
 
-(defn reducer-reduce 
-  "This is our implementation of the Reducer.reduce method.  The key
+(defn reducer-reduce
+  "This is our implementation of the Reducer.reduce method. The key
   argument is a sub-class of Hadoop's Writable, but 'values' is a Java
-  Iterator that returns successive values.  We have to use
-  iterator-seq to get a Clojure sequence from the Iterator.  
+  Iterator that returns successive values. We have to use
+  iterator-seq to get a Clojure sequence from the Iterator.
 
   Beware, however, that Hadoop re-uses a single object for every
-  object returned by the Iterator.  So when you get an object from the
+  object returned by the Iterator. So when you get an object from the
   iterator, you must extract its value (as we do here with the 'get'
   method) immediately, before accepting the next value from the
   iterator.  That is, you cannot hang on to past values from the
   iterator."
-  [this key values #^OutputCollector output reporter]
-  (let [sum (reduce + (map (fn [#^LongWritable v] (.get v)) (iterator-seq values)))]
-    (.collect output key (LongWritable. sum))))
+  [this key values ^ReduceContext context]
+  (let [sum (reduce +
+                    (map (fn [^LongWritable v]
+                           (.get v))
+                         values))]
+    (.write context key (LongWritable. sum))))
 
 (defn tool-run
   "This is our implementation of the Tool.run method.  args are the
@@ -68,16 +70,16 @@
 
   This method must return zero on success or Hadoop will report that
   the job failed."
-  [#^Tool this args]
-  (doto (JobConf. (.getConf this) (.getClass this))
-    (.setJobName "wordcount1")
-    (.setOutputKeyClass Text)
-    (.setOutputValueClass LongWritable)
-    (.setMapperClass (Class/forName "clojure_hadoop.examples.wordcount1_mapper"))
-    (.setReducerClass (Class/forName "clojure_hadoop.examples.wordcount1_reducer"))
-    (.setInputFormat TextInputFormat)
-    (.setOutputFormat TextOutputFormat)
-    (FileInputFormat/setInputPaths (first args))
-    (FileOutputFormat/setOutputPath (Path. (second args)))
-    (JobClient/runJob))
-  0)
+  [^Tool this args]
+  (let [job
+        (doto (Job. (.getConf this))
+          (.setJobName "wordcount1")
+          (.setOutputKeyClass Text)
+          (.setOutputValueClass LongWritable)
+          (.setMapperClass (Class/forName "clojure_hadoop.test.examples.wordcount1_mapper"))
+          (.setReducerClass (Class/forName "clojure_hadoop.test.examples.wordcount1_reducer"))
+          (.setInputFormatClass TextInputFormat)
+          (.setOutputFormatClass TextOutputFormat)
+          (FileInputFormat/setInputPaths (first args))
+          (FileOutputFormat/setOutputPath (Path. (second args))))]
+    (if (.waitForCompletion job true) 0 1)))

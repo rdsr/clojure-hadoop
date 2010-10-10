@@ -1,0 +1,4 @@
+* fix documentation
+* add lzo compression
+* add identity mappers and reducers
+* test current code

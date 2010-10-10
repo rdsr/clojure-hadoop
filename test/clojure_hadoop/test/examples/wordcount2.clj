@@ -1,5 +1,4 @@
 ;; wordcount2 -- wrapped MapReduce example
-;;
 ;; This namespace demonstrates how to use the function wrappers
 ;; provided by the clojure-hadoop library.
 ;;
@@ -26,8 +25,8 @@
 ;; To run this example, first compile it (see instructions in
 ;; README.txt), then run this command (all one line):
 ;;
-;;   java -cp examples.jar \
-;;        clojure_hadoop.examples.wordcount2 \
+;;   java -cp classes:lib/[xyz.jar] \
+;;        clojure_hadoop.test.examples.wordcount2 \
 ;;        README.txt out2
 ;;
 ;; This will count the instances of each word in README.txt and write
@@ -37,23 +36,23 @@
 ;; quotation marks.  That's because they are being printed as readable
 ;; strings by Clojure, as with 'pr'.
 
-
-(ns clojure-hadoop.examples.wordcount2
+(ns clojure-hadoop.test.examples.wordcount2
   (:require [clojure-hadoop.gen :as gen]
             [clojure-hadoop.imports :as imp]
             [clojure-hadoop.wrap :as wrap])
   (:import (java.util StringTokenizer)
            (org.apache.hadoop.util Tool)))
 
-(imp/import-io)     ;; for Text
-(imp/import-fs)     ;; for Path
-(imp/import-mapred) ;; for JobConf, JobClient
+(imp/import-io)             ;; for Text
+(imp/import-fs)             ;; for Path
+(imp/import-mapreduce)      ;; for Job
+(imp/import-mapreduce-lib)  ;; TextInputFormat, TextOutputFormat
 
 (gen/gen-job-classes)
 (gen/gen-main-method)
 
 (def mapper-map
-     (wrap/wrap-map 
+     (wrap/wrap-map
       (fn [key value]
         (map (fn [token] [token 1])
              (enumeration-seq (StringTokenizer. value))))
@@ -64,16 +63,16 @@
       (fn [key values-fn]
         [[key (reduce + (values-fn))]])))
 
-(defn tool-run [#^Tool this args]
-  (doto (JobConf. (.getConf this) (.getClass this))
-    (.setJobName "wordcount2")
-    (.setOutputKeyClass Text)
-    (.setOutputValueClass Text)
-    (.setMapperClass (Class/forName "clojure_hadoop.examples.wordcount2_mapper"))
-    (.setReducerClass (Class/forName "clojure_hadoop.examples.wordcount2_reducer"))
-    (.setInputFormat TextInputFormat)
-    (.setOutputFormat TextOutputFormat)
-    (FileInputFormat/setInputPaths #^String (first args))
-    (FileOutputFormat/setOutputPath (Path. (second args)))
-    (JobClient/runJob))
-  0)
+(defn tool-run [^Tool this args]
+  (let [job
+        (doto (Job. (.getConf this))
+          (.setJobName "wordcount2")
+          (.setOutputKeyClass Text)
+          (.setOutputValueClass Text)
+          (.setMapperClass (Class/forName "clojure_hadoop.test.examples.wordcount2_mapper"))
+          (.setReducerClass (Class/forName "clojure_hadoop.test.examples.wordcount2_reducer"))
+          (.setInputFormatClass TextInputFormat)
+          (.setOutputFormatClass TextOutputFormat)
+          (FileInputFormat/setInputPaths ^String (first args))
+          (FileOutputFormat/setOutputPath (Path. (second args))))]
+    (if (.waitForCompletion job true) 0 1)))

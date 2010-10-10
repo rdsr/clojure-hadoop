@@ -1,0 +1,1 @@
+(ns clojure-hadoop.core)

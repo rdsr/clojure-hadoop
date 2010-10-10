@@ -16,18 +16,19 @@
 ;; After compiling (see README.txt), run the example like this
 ;; (all on one line):
 ;;
-;;   java -cp examples.jar clojure_hadoop.job \
-;;        -job clojure-hadoop.examples.wordcount4/job \
+;;   java -cp classes:lib/[hadoop and its dependencies] \
+;;            clojure_hadoop.job \
+;;        -job clojure-hadoop.test.examples.wordcount4/job \
 ;;        -input README.txt -output out4
 ;;
 ;; The output is a Hadoop SequenceFile.  You can view the output
 ;; with (all one line):
 ;;
-;;   java -cp examples.jar org.apache.hadoop.fs.FsShell \
-;;        -text out4/part-00000 
-  
+;;   java -cp lib/[hadoop and its dependencies \
+;;            org.apache.hadoop.fs.FsShell \
+;;        -text out4/part-00000
 
-(ns clojure-hadoop.examples.wordcount4
+(ns clojure-hadoop.test.examples.wordcount4
   (:require [clojure-hadoop.wrap :as wrap]
             [clojure-hadoop.defjob :as defjob])
   (:import (java.util StringTokenizer)))
@@ -44,4 +45,3 @@
   :map-reader wrap/int-string-map-reader
   :reduce my-reduce
   :input-format :text)
-

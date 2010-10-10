@@ -1,0 +1,8 @@
+# clojure-hadoop
+
+Modification of stuartsierra's code to work with
+clojure-1.2, leiningen and hadoop-0.20.1.
+
+Currently, the code is a little rough,
+lzo compression is not yet supported.
+Identiy mappers and reducers need to be added

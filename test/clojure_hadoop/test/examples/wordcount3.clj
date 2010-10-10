@@ -11,7 +11,7 @@
 ;; After compiling (see README.txt), run the example like this
 ;; (all on one line):
 ;;
-;;   java -cp examples.jar clojure_hadoop.job \
+;;   java -cp classes:lib/[xyz.jar] clojure_hadoop.job \
 ;;        -input README.txt \
 ;;        -output out3 \
 ;;        -map clojure-hadoop.examples.wordcount3/my-map \
@@ -22,8 +22,9 @@
 ;; The output is a Hadoop SequenceFile.  You can view the output
 ;; with (all one line):
 ;;
-;;   java -cp examples.jar org.apache.hadoop.fs.FsShell \
-;;        -text out3/part-00000 
+
+;;   java -cp lib/[xyz.jar]  org.apache.hadoop.fs.FsShell\
+;;        -text out3/part-r-00000
 ;;
 ;; clojure_hadoop.job (note the underscore instead of a dash, because
 ;; we are calling it as a Java class) provides classes for Tool,
@@ -45,9 +46,8 @@
 ;; Run clojure_hadoop.job without any arguments for a brief summary of
 ;; the options.  See src/clojure_hadoop/job.clj and
 ;; src/clojure_hadoop/config.clj for more configuration options.
-  
 
-(ns clojure-hadoop.examples.wordcount3
+(ns clojure-hadoop.test.examples.wordcount3
   (:import (java.util StringTokenizer)))
 
 (defn my-map [key value]
@@ -56,4 +56,3 @@
 
 (defn my-reduce [key values-fn]
   [[key (reduce + (values-fn))]])
-
